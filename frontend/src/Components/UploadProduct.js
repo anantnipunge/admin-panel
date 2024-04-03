@@ -344,7 +344,7 @@ const UploadProduct = () => {
         </div>
       </div>
       <form onSubmit={handleSubmit}>
-        {/* <div className="mb-4">
+        <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2">
             Product ID
           </label>
@@ -355,7 +355,7 @@ const UploadProduct = () => {
             onChange={handleInputChange}
             className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />
-        </div> */}
+        </div>
 
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -463,7 +463,40 @@ const UploadProduct = () => {
             onChange={handleInputChange}
             className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />
+  </div> 
+  */}
+        
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Colors
+          </label>
+          {formData.colors.map((color, index) => (
+            <div key={index} className="mb-2">
+              <input
+                type="text"
+                name={`colors[${index}]`}
+                value={color}
+                onChange={(e) => handleItemChange(e, index, "colors")}
+                className="border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => handleAddItem("colors")}
+            className="bg-gray-500 hover:bg-black-700 text-white font-bold py-1 px-1 rounded-full focus:outline-none focus:shadow-outline"
+          >
+            Add Color
+          </button>
         </div>
+        {/* {renderDropdown("colors")}
+        <button
+          type="button"
+          onClick={() => handleAddItem("colors")}
+          className="bg-gray-500 hover:bg-black-700 text-white font-bold py-1 px-1 rounded-full focus:outline-none focus:shadow-outline"
+        >
+          Add Color
+        </button> */}
 
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2">
