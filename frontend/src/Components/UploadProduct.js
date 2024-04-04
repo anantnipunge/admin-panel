@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { storage, database, firestore } from '../config/firebase';
 import { collection, addDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import app from '../config/firebase';
 
 const UploadProduct = () => {
   const [formData, setFormData] = useState({
@@ -23,47 +25,91 @@ const UploadProduct = () => {
     setFormData({ ...formData, [type]: [...formData[type], ""] });
   };
 
+  const uploadFile = (file, fileType) => {
+    return new Promise((resolve, reject) => {
+      const storage = getStorage(app);
+      const folder = fileType === "images" ? "images/" : "models/";
+      const fileName = new Date().getTime() + "_" + file.name;
+      const storageRef = ref(storage, folder + fileName);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+  
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          // Handle state changes if needed
+        },
+        (error) => {
+          console.log(error);
+          reject(error); // Reject promise on error
+        },
+        () => {
+          // Upload completed successfully, resolve with the download URL
+          getDownloadURL(uploadTask.snapshot.ref)
+            .then((downloadURL) => {
+              resolve(downloadURL);
+            })
+            .catch((error) => {
+              reject(error); // Reject promise if getting download URL fails
+            });
+        }
+      );
+    });
+  };
+
   const handleModelChange = async (e) => {
     setIsLoading(true);
-    const currentFile = e.target.files[0];
-    const modelName = `${Date.now()}_${currentFile.name}`; // Generate a unique name for the model file
-    const modelRef = storage.ref().child(`models/${modelName}`);
-    await modelRef.put(formData.model);
-    const modelUrl = await modelRef.getDownloadURL();
-    const updatedObject = {target : {name : 'model',value:modelUrl}};
-    handleInputChange(updatedObject);
-    setIsLoading(false);
-    // setFormData({ ...formData, model: modelUrl });
+    try {
+      const modelFile = e.target.files[0];
+      const modelUrl = await uploadFile(modelFile);
+      setFormData(prevState => ({
+        ...prevState,
+        model: modelUrl
+      }));
+      console.log('model url is', formData);
+    } catch (error) {
+      console.error('Error uploading model:', error);
+      alert('Error uploading model. Please try again.'); // Show alert on error
+      setTimeout(() => {
+        window.location.reload(); // Reload page after 2 seconds
+      }, 2000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleItemChange = async (e, index, type) => {
     setIsLoading(true);
-    const newItems = [...formData[type]];
-    const imageFile = e.target.files[0];
-    const imageName = `${Date.now()}_${imageFile.name}`; // Generate a unique name for each image
-    const imageRef = storage.ref().child(`images/${imageName}`);
-    await imageRef.put(imageFile);
-    const imageUrl = await imageRef.getDownloadURL();
-    newItems[index] = imageUrl;
-    console.log('imgurl is',imageUrl);
-    setFormData({ ...formData, [type]: newItems });
-    setIsLoading(false);
+    try {
+      const newItems = [...formData[type]];
+      const imageFile = e.target.files[0];
+      const imageUrl = await uploadFile(imageFile, "images");
+      newItems[index] = imageUrl;
+      setFormData({ ...formData, [type]: newItems });
+    } catch (error) {
+      console.error('Error uploading model:', error);
+      alert('Error uploading model. Please try again.'); // Show alert on error
+      setTimeout(() => {
+        window.location.reload(); // Reload page after 2 seconds
+      }, 2000);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      formData.price = parseFloat(formData.price); // Parsing price to a float number
+      formData.offerPercentage = parseInt(formData.offerPercentage);
       const productsCollection = collection(firestore, 'Products');
       const productRef = await addDoc(productsCollection, formData);
-
-      // Perform your upload logic here using axios or fetch
-      // Reset the form data after successful upload
       setFormData({
         name: "",
         model: "",
         category: "",
-        price: "",
-        offerPercentage: "",
+        price: 0,
+        offerPercentage: 0,
         description: "",
         images: [],
       });
@@ -73,25 +119,6 @@ const UploadProduct = () => {
       console.error("Error uploading product details:", error);
     }
   };
-
-  // Define a function to handle file selection
-  // const handleFileSelect = (event,isModel) => {
-  //   const curretnFile = event.target.files[0]; // Get the selected files
-  //   console.log('filename is ',curretnFile.name);
-
-  //   if(isModel){
-  //     setFormData((prevFormData) => ({
-  //       ...prevFormData,
-  //       model: curretnFile, // Append selectedFiles to existing images array
-  //     }));
-  //   }else{
-  //     setFormData((prevFormData) => ({
-  //       ...prevFormData,
-  //       images: [...prevFormData.images, curretnFile], // Append selectedFiles to existing images array
-  //     }));
-  //   }
-  // };
-
 
   return (
     <div className="max-w-md mx-auto p-4 border rounded shadow bg-gray-100 p-4 flex-grow mt-4">
